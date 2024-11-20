@@ -1,3 +1,4 @@
+const { ObjectId } = require("mongodb");
 const ApiError = require("../api-error");
 const MongoDB = require("../utils/mongodb.util");
 const PublisherService = require("./nhaxuatban.service");
@@ -25,12 +26,14 @@ class BookService {
 
   async create(payload) {
     const data = this.extractBookData(payload);
-    const publisherService = new PublisherService(MongoDB.client);
-    const isExistingPublisher = await publisherService.findById(data.manxb);
-    console.log(isExistingPublisher);
-    if (!isExistingPublisher) {
-      return null;
+
+    const isExist = await this.find({ masach: data.masach });
+    console.log(isExist.length);
+
+    if (isExist.length > 0) {
+      return { errorMessage: "Mã sách đã tồn tại" };
     }
+
     const document = await this.Book.findOneAndUpdate(
       { masach: data.masach },
       { $set: data },
@@ -43,10 +46,15 @@ class BookService {
     return document;
   }
 
+  async count(filter) {
+    const total = await this.Book.countDocuments(filter);
+    return total;
+  }
+
   async update(id, payload) {
     const data = this.extractBookData(payload);
     const document = await this.Book.findOneAndUpdate(
-      { masach: id },
+      { _id: new ObjectId(id) },
       { $set: data },
       {
         returnDocument: "after",
@@ -56,7 +64,7 @@ class BookService {
   }
 
   async find(filter) {
-    const cursor = await this.Book.find(filter);
+    const cursor = await this.Book.find(filter).sort({ masach: 1 });
     return await cursor.toArray();
   }
   async findByName(name) {
@@ -67,15 +75,15 @@ class BookService {
       tacgia_nguongoc: { $regex: new RegExp(author, "i") },
     });
   }
-  async findByPublisherId(id) {
+  async findByPublisherMaNXB(manxb) {
     return await this.find({
-      manxb: id,
+      manxb: manxb,
     });
   }
 
   async findById(id) {
     const document = await this.Book.findOne({
-      masach: id,
+      _id: new ObjectId(id),
     });
     return document;
   }
@@ -88,7 +96,7 @@ class BookService {
   async deleteOne(id) {
     const document = await this.Book.findOneAndDelete(
       {
-        masach: id,
+        _id: new ObjectId(id),
       },
       { returnDocument: "after" }
     );

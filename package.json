@@ -18,8 +18,10 @@
   "homepage": "https://github.com/NguyenAnhHao1009/Aha_Book_BackEnd#readme",
   "description": "",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
     "module-alias": "^2.2.3",
     "mongodb": "^6.9.0"
   },

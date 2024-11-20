@@ -9,6 +9,8 @@ router
   .post(reader.create)
   .delete(reader.deleteAll);
 
+router.route("/login").post(reader.login);
+
 router
   .route("/:id")
   .get(reader.findOne)

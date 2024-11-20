@@ -1,10 +1,12 @@
+const { ObjectId } = require("mongodb");
+
 class PublisherService {
   constructor(client) {
     this.Publisher = client.db().collection("nhaxuatban");
   }
   extractPublisherData(payload) {
     const publisher = {
-      manxb: payload.manxb,
+      manxb: payload.manxb.toUpperCase(),
       tennxb: payload.tennxb,
       diachi: payload.diachi,
     };
@@ -12,6 +14,7 @@ class PublisherService {
     Object.keys(publisher).forEach(
       (key) => publisher[key] === undefined && delete publisher[key]
     );
+
     return publisher;
   }
   async find(filter) {
@@ -25,19 +28,21 @@ class PublisherService {
   }
   async findById(id) {
     const result = await this.Publisher.findOne({
-      manxb: id,
+      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
     });
     return result;
   }
-  async deleteAll() {
-    const result = await this.Publisher.deleteMany({});
-    return result.deletedCount;
-  }
+
   async deleteOne(id) {
     const MongoDB = require("../utils/mongodb.util");
     const BookService = require("./sach.service");
     const bookService = new BookService(MongoDB.client);
-    const existingInBook = await bookService.findByPublisherId(id);
+
+    const publisher = await this.findById(id);
+
+    const existingInBook = await bookService.findByPublisherMaNXB(
+      publisher.manxb
+    );
 
     if (existingInBook.length > 0) {
       return {
@@ -46,7 +51,7 @@ class PublisherService {
     }
 
     const result = await this.Publisher.findOneAndDelete({
-      manxb: id,
+      _id: ObjectId.isValid(id) ? new ObjectId(id) : null,
     });
 
     return result;
@@ -54,6 +59,14 @@ class PublisherService {
 
   async create(payload) {
     const publisher = this.extractPublisherData(payload);
+
+    const isExist = await this.find({
+      manxb: { $regex: new RegExp(publisher.manxb.trim(), "i") },
+    });
+
+    if (isExist.length > 0)
+      return { errorMessage: "Mã nhà xuất bản đã tồn tại" };
+
     const result = await this.Publisher.findOneAndUpdate(
       { manxb: publisher.manxb },
       { $set: publisher },
@@ -68,12 +81,14 @@ class PublisherService {
   async update(id, payload) {
     const publisherUpdate = this.extractPublisherData(payload);
     const result = await this.Publisher.findOneAndUpdate(
-      { manxb: id },
+      { _id: ObjectId.isValid(id) ? new ObjectId(id) : null },
       { $set: publisherUpdate },
       {
         returnDocument: "after",
       }
     );
+
+    console.log(result);
 
     return result;
   }

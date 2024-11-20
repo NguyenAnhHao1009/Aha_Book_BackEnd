@@ -1,10 +1,12 @@
+const { ObjectId } = require("mongodb");
+
 class StaffService {
   constructor(client) {
     this.Staff = client.db().collection("nhanvien");
   }
   extractStaffData(payload) {
     const staff = {
-      msnv: payload.msnv,
+      msnv: payload.msnv ? payload.msnv.toUpperCase() : undefined,
       hotennv: payload.hotennv,
       password: payload.password,
       chucvu: payload.chucvu,
@@ -19,6 +21,12 @@ class StaffService {
   }
   async create(payload) {
     const staff = this.extractStaffData(payload);
+
+    const isExist = await this.find({ msnv: staff.msnv });
+
+    if (isExist.length > 0) {
+      return { errorMessage: "Mã nhân viên đã tồn tại" };
+    }
 
     const document = await this.Staff.findOneAndUpdate(
       {
@@ -37,12 +45,21 @@ class StaffService {
     console.log(staffUpdate);
 
     const document = await this.Staff.findOneAndUpdate(
-      { msnv: id },
+      { _id: new ObjectId(id) },
       { $set: staffUpdate },
       { returnDocument: "after" }
     );
 
     return document;
+  }
+
+  async changePassword(id, oldPass, newPass) {
+    const staff = await this.findById(id);
+    if (staff) {
+      const isMatchPassword = bcryot;
+    } else {
+      return { errorMessage: "Không tìm thấy nhân viên này" };
+    }
   }
 
   async find(filter) {
@@ -56,18 +73,24 @@ class StaffService {
   }
   async findById(id) {
     return await this.Staff.findOne({
-      msnv: id,
+      _id: new ObjectId(id),
     });
   }
+
+  async findByMSNV(msnv) {
+    return await this.Staff.findOne({
+      msnv: msnv,
+    });
+  }
+
   async deleteAll() {
     const deletedCount = await this.Staff.deleteMany({});
     return deletedCount;
   }
   async deleteOne(id) {
     const result = await this.Staff.findOneAndDelete({
-      msnv: id,
+      _id: new ObjectId(id),
     });
-    console.log(result);
     return result;
   }
 }

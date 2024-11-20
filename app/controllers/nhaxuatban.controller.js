@@ -1,3 +1,4 @@
+const { ObjectId } = require("mongodb");
 const ApiError = require("../api-error");
 const PublisherService = require("../services/nhaxuatban.service");
 const MongoDB = require("../utils/mongodb.util");
@@ -57,16 +58,22 @@ exports.findOne = async (req, res, next) => {
 };
 
 exports.delete = async (req, res, next) => {
+  if (!req.params.id || !ObjectId.isValid(req.params.id)) {
+    return next(new ApiError(400, "Mã không hợp lệ"));
+  }
+
   try {
     const publisherService = new PublisherService(MongoDB.client);
     const document = await publisherService.deleteOne(req.params.id);
-    console.log("C");
 
     if (!document || document.errorMessage) {
-      const message = document
-        ? document.errorMessage
-        : "Không tìm thấy nhà xuất bản";
-      return next(new ApiError(404, message));
+      if (document.errorMessage) {
+        return res.send({
+          errorMessage:
+            "Không thể xóa do nhà xuất bản này đang có sách liên quan",
+        });
+      }
+      return next(new ApiError(400, "Không tìm thấy nhà xuất bản"));
     }
     return res.send({ message: "Xóa thành công nhà xuất bản" });
   } catch (error) {
@@ -93,7 +100,10 @@ exports.deleteAll = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   if (Object.keys(req.body).length === 0) {
-    return next(new ApiError(400, "Dữ liệu cập nhật không đượcc rỗng"));
+    return next(new ApiError(400, "Dữ liệu cập nhật không được rỗng"));
+  }
+  if(!ObjectId.isValid(req.params.id)){
+    return next(new ApiError(404, "Mã không hợp lệ"));
   }
   try {
     const publisherService = new PublisherService(MongoDB.client);

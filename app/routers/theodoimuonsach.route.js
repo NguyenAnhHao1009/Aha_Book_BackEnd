@@ -8,7 +8,16 @@ router
   .get(trackBookBorrowing.findAll)
   .post(trackBookBorrowing.create);
 
-router.route("/update").post(trackBookBorrowing.update);
+router.route("/update/:id").post(trackBookBorrowing.update);
 
 router.route("/detail").get(trackBookBorrowing.findOne);
+
+router.route("/damuon").get(trackBookBorrowing.findBorrowedOfReader);
+
+router.route("/history/:id").get(trackBookBorrowing.getHistoryOfReader)
+
+router.route("/masach/:masach").get(trackBookBorrowing.findByMaSach);
+
+router.route("/:id").delete(trackBookBorrowing.delete)
+
 module.exports = router;

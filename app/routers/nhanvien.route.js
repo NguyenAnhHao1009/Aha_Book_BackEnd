@@ -9,6 +9,9 @@ router
   .post(staffs.create)
   .delete(staffs.deleteAll);
 
+router.route("/login").post(staffs.login);
+router.route("/changePassword/:id").post(staffs.changePassword);
+
 router
   .route("/:id")
   .get(staffs.findOne)

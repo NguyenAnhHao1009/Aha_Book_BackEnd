@@ -1,6 +1,8 @@
+const { ObjectId } = require("mongodb");
 const ApiError = require("../api-error");
 const BookService = require("../services/sach.service");
 const MongoDB = require("../utils/mongodb.util");
+const BorrowedBookTracking = require("../services/theodoimuonsach.service");
 
 exports.create = async (req, res, next) => {
   if (!req.body?.masach) {
@@ -9,9 +11,6 @@ exports.create = async (req, res, next) => {
   try {
     const bookService = new BookService(MongoDB.client);
     const document = await bookService.create(req.body);
-    if (!document) {
-      return next(new ApiError(400, "Nhà xuất bản không tồn tại"));
-    }
     return res.send(document);
   } catch (error) {
     return next(new ApiError(500, "Có lỗi xảy ra khi thêm một sản phẩm"));
@@ -33,10 +32,19 @@ exports.findAll = async (req, res, next) => {
     } else {
       documents = await bookService.find({});
     }
-    console.log(documents);
     return res.send(documents);
   } catch (error) {
     return next(new ApiError(500, "Lỗi khi tìm tất cả các sách"));
+  }
+};
+
+exports.countAll = async (req, res, next) => {
+  try {
+    const bookService = new BookService(MongoDB.client);
+    const result = await bookService.count({});
+    return res.send({ total: result });
+  } catch (error) {
+    return next(new ApiError(500, "Lỗi khi đếm số sách"));
   }
 };
 
@@ -56,8 +64,28 @@ exports.findOne = async (req, res, next) => {
 };
 
 exports.delete = async (req, res, next) => {
+  if (!ObjectId.isValid(req.params.id)) {
+    return next(new ApiError(400, `Mã sách không hợp lệ`));
+  }
   try {
+    const borrowedBookTrackingService = new BorrowedBookTracking(
+      MongoDB.client
+    );
+
     const bookService = new BookService(MongoDB.client);
+    const isExist = await bookService.find({ _id: new ObjectId(req.params.id) });
+    console.log(isExist.length);
+    
+    
+    const maSach = isExist[0].masach ?? null;
+    const isBorrowed = await borrowedBookTrackingService.find({
+      masach: maSach,
+    });
+
+    if (isBorrowed.length > 0) {
+      return res.send({ errorMessage: "Sách đang được mượn không thể xóa" });
+    }
+
     const document = await bookService.deleteOne(req.params.id);
     if (!document) {
       return next(new ApiError(404, `Khong tìm thấy mã sách ${req.params.id}`));
@@ -80,6 +108,9 @@ exports.deleteAll = async (req, res, next) => {
 };
 
 exports.update = async (req, res, next) => {
+  if (!ObjectId.isValid(req.params.id)) {
+    return next(new ApiError(400, `Ma sach khong hop le`));
+  }
   try {
     const bookService = new BookService(MongoDB.client);
     const document = await bookService.update(req.params.id, req.body);

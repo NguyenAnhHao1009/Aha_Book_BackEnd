@@ -1,3 +1,5 @@
+const { ObjectId } = require("mongodb");
+
 class ReaderService {
   constructor(client) {
     this.Reader = client.db().collection("docgia");
@@ -10,6 +12,7 @@ class ReaderService {
       ngaysinh: payload.ngaysinh,
       diachi: payload.diachi,
       dienthoai: payload.dienthoai,
+      password: payload.password,
     };
     Object.keys(reader).forEach(
       (key) => reader[key] === undefined && delete reader[key]
@@ -40,7 +43,8 @@ class ReaderService {
   }
 
   async findById(id) {
-    const result = await this.Reader.findOne({ madocgia: id });
+    const result = await this.Reader.findOne({ _id: new ObjectId(id) });
+    console.log(result);
     return result;
   }
 
@@ -70,7 +74,7 @@ class ReaderService {
   async update(id, payload) {
     const readerUpdate = this.extractReaderData(payload);
     const result = await this.Reader.findOneAndUpdate(
-      { madocgia: id },
+      { _id: new ObjectId(id) },
       { $set: readerUpdate },
       {
         returnDocument: "after",
